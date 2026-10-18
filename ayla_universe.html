@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#02030a">
+  <meta name="color-scheme" content="dark">
+  <title>AYLA UNIVERSE — An interactive journey through space</title>
+  <meta name="description" content="AYLA UNIVERSE is an interactive journey through space: explore the solar system in 3D, ask AYLA about the cosmos, and build worlds and galaxies of your own.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2302030a'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%23eceeff' stroke-width='1.4'/%3E%3Ccircle cx='16' cy='16' r='2.6' fill='%238fe6f5'/%3E%3Ccircle cx='23.4' cy='10.1' r='1.7' fill='%23eceeff'/%3E%3C/svg%3E">
+
+  <!-- Poster is the first thing painted; start fetching it right away -->
+  <link rel="preload" as="image" href="assets/img/ayla-intro-poster.jpg" fetchpriority="high">
+
+  <!-- Google Fonts: Jost (display/UI), Cormorant Garamond (editorial), IBM Plex Mono (data) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-mode="intro" class="is-intro">
+
+  <!-- Icon sprite: one stroke style (1.5px, round) for the whole interface -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-explore" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><ellipse cx="12" cy="12" rx="9.5" ry="4.1" transform="rotate(-24 12 12)"/></symbol>
+      <symbol id="i-ask" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 9.5h7M8.5 12.5h4"/></symbol>
+      <symbol id="i-create" viewBox="0 0 24 24"><circle cx="10.5" cy="13.5" r="6"/><path d="M18 3.5v6M15 6.5h6"/></symbol>
+      <symbol id="i-log" viewBox="0 0 24 24"><path d="M6 4h10.5A1.5 1.5 0 0 1 18 5.5V20H8a2 2 0 0 1-2-2z"/><path d="M6 18a2 2 0 0 1 2-2h10"/><path d="M10 8h4"/></symbol>
+      <symbol id="i-sound-on" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></symbol>
+      <symbol id="i-sound-off" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M14 7l5 5-5 5"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-3.5L7 20z"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 5v14M15.5 5v14"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4h4"/></symbol>
+      <symbol id="i-orbit" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="4.5"/><circle cx="19" cy="9.4" r="1.5"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></symbol>
+      <symbol id="i-meteor" viewBox="0 0 24 24"><path d="M20 4L9 15M15.5 4.5L6.5 13.5M20 8.5L12 16.5"/><circle cx="6.5" cy="17.5" r="2"/></symbol>
+      <symbol id="i-overview" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.8"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></symbol>
+      <symbol id="i-galaxy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><path d="M12 7.5a4.5 4.5 0 0 1 4.5 4.5M12 3a9 9 0 0 1 9 9M12 16.5A4.5 4.5 0 0 1 7.5 12M12 21a9 9 0 0 1-9-9"/></symbol>
+      <symbol id="i-badge-novice" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></symbol>
+      <symbol id="i-badge-cartographer" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.8 8.2l-2.2 5.4-5.4 2.2 2.2-5.4z"/></symbol>
+      <symbol id="i-badge-master" viewBox="0 0 24 24"><path d="M3.5 6.5C6 5.2 9.5 5.2 12 7c2.5-1.8 6-1.8 8.5-.5V18c-2.5-1.3-6-1.3-8.5.5-2.5-1.8-6-1.8-8.5-.5z"/><path d="M12 7v11.5"/></symbol>
+      <symbol id="i-badge-ayla" viewBox="0 0 24 24"><path d="M12 3l1.9 6.1L20 11l-6.1 1.9L12 19l-1.9-6.1L4 11l6.1-1.9z"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+  <noscript><p style="position:fixed;z-index:200;left:0;right:0;bottom:0;margin:0;padding:14px 20px;background:#02030a;color:#eceeff;font:14px/1.4 sans-serif;text-align:center">AYLA UNIVERSE needs JavaScript to open the universe.</p></noscript>
+
+  <!-- ===================== THE UNIVERSE (persistent background) ===================== -->
+  <div id="universe" class="universe" aria-hidden="true">
+    <canvas id="universeCanvas"></canvas>
+    <canvas id="fallbackCanvas" hidden></canvas>
+  </div>
+  <div id="labels" class="labels" aria-label="Celestial body labels"></div>
+  <canvas id="meteorCanvas" class="meteor-canvas" hidden aria-hidden="true"></canvas>
+
+  <!-- ===================== OPENING SCREEN ===================== -->
+  <section id="gatewayHero" class="intro" aria-labelledby="introTitle">
+    <div class="intro__media has-poster" aria-hidden="true">
+      <video id="introVideo" class="intro__video"
+             autoplay muted loop playsinline preload="auto"
+             poster="assets/img/ayla-intro-poster.jpg"
+             disablepictureinpicture disableremoteplayback tabindex="-1">
+        <source src="assets/video/ayla-intro.mp4" type="video/mp4">
+        <source src="assets/video/ayla-intro.webm" type="video/webm">
+      </video>
+      <div class="intro__scrim"></div>
+      <div class="intro__grain"></div>
+      <div class="intro__dip"></div>
+    </div>
+
+    <div class="intro__frame">
+      <p class="intro__eyebrow">An interactive journey through space</p>
+      <h1 id="introTitle" class="intro__title"><span>AYLA</span> <span>UNIVERSE</span></h1>
+    </div>
+
+    <div class="intro__foot">
+      <p class="intro__sub">The universe is waiting. Wander through its worlds, one star at a time.</p>
+      <div class="intro__cta">
+        <button id="enterUniverseBtn" class="btn btn--enter" type="button" onclick="enterUniverse()">
+          <span class="btn__label">Enter the universe</span>
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </button>
+        <p id="introStatus" class="intro__status" role="status" aria-live="polite">Preparing the universe…</p>
+      </div>
+    </div>
+    <div id="introProgress" class="intro__progress" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- ===================== NAVIGATION ===================== -->
+  <div id="mainNav" class="chrome is-hidden">
+    <header class="topbar">
+      <a class="brand" href="#main" onclick="switchMode('explore'); return false;" aria-label="AYLA UNIVERSE, back to Explore">
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="16" cy="16" r="2.4" fill="var(--cyan)"/><circle cx="23.4" cy="10.1" r="1.6" fill="currentColor"/></svg>
+        <span class="brand__word">AYLA&nbsp;UNIVERSE</span>
+      </a>
+      <div class="topbar__tools">
+        <button id="soundToggleBtn" class="icon-btn" type="button" onclick="toggleAudio()" aria-label="Turn ambient sound on" aria-pressed="false">
+          <svg class="icon" aria-hidden="true"><use id="soundIcon" href="#i-sound-off"/></svg>
+        </button>
+        <button class="icon-btn" type="button" onclick="openSettingsModal()" aria-label="Open settings" aria-haspopup="dialog">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>
+        </button>
+      </div>
+    </header>
+    <nav class="nav" aria-label="Modes">
+      <button id="btn-nav-explore" class="nav__btn" type="button" onclick="switchMode('explore')"><svg class="icon" aria-hidden="true"><use href="#i-explore"/></svg><span>Explore</span></button>
+      <button id="btn-nav-ask" class="nav__btn" type="button" onclick="switchMode('ask')"><svg class="icon" aria-hidden="true"><use href="#i-ask"/></svg><span>Ask AYLA</span></button>
+      <button id="btn-nav-create" class="nav__btn" type="button" onclick="switchMode('create')"><svg class="icon" aria-hidden="true"><use href="#i-create"/></svg><span>Create</span></button>
+      <button id="btn-nav-discoveries" class="nav__btn" type="button" onclick="switchMode('discoveries')"><svg class="icon" aria-hidden="true"><use href="#i-log"/></svg><span>Log</span></button>
+    </nav>
+  </div>
+
+  <main id="main" class="main" tabindex="-1">
+
+    <!-- ===================== EXPLORE ===================== -->
+    <section id="modeExplorer" class="mode mode--explore" hidden aria-label="Explore the universe">
+      <div id="threeCanvasContainer" class="stage" aria-hidden="true"></div>
+
+      <aside class="bodies" aria-label="Celestial bodies">
+        <h2 class="eyebrow bodies__title">Bodies</h2>
+        <ul id="bodyList" class="bodies__list"></ul>
+        <div class="bodies__actions">
+          <button class="text-btn" type="button" onclick="closeInspector()"><svg class="icon" aria-hidden="true"><use href="#i-overview"/></svg><span>Overview</span></button>
+          <button class="text-btn" type="button" onclick="triggerMeteorShower()"><svg class="icon" aria-hidden="true"><use href="#i-meteor"/></svg><span>Meteor shower</span></button>
+        </div>
+      </aside>
+
+      <p class="hint" id="exploreHint"><span class="hint__pointer">Drag to orbit · Scroll to zoom · Click a body to inspect</span><span class="hint__touch">Drag to orbit · Pinch to zoom · Tap a body to inspect</span></p>
+
+      <aside id="inspectorPanel" class="inspector" aria-labelledby="inspectName" aria-hidden="true">
+        <button class="icon-btn inspector__close" type="button" onclick="closeInspector()" aria-label="Close details"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+        <p id="inspectType" class="eyebrow">Star</p>
+        <h2 id="inspectName" class="inspector__name">Sun</h2>
+        <p id="inspectFiction" class="inspector__tag" hidden>Fictional object of the AYLA universe</p>
+        <dl class="facts">
+          <div class="facts__row"><dt>Diameter</dt><dd id="inspectDiameter">1,392,700 km</dd></div>
+          <div class="facts__row"><dt>Temperature</dt><dd id="inspectTemp">5,500 °C</dd></div>
+          <div class="facts__row"><dt>Orbital period</dt><dd id="inspectOrbit">Center</dd></div>
+          <div class="facts__row"><dt>Composition</dt><dd id="inspectComposition">Hydrogen, Helium</dd></div>
+        </dl>
+        <p id="inspectDesc" class="inspector__desc">The yellow dwarf star at the center of our solar system.</p>
+        <figure class="inspector__trivia">
+          <figcaption class="eyebrow">Did you know</figcaption>
+          <p id="inspectTrivia">Contains 99.86% of the total mass in the Solar System.</p>
+        </figure>
+        <button id="addDiscoveryBtn" class="btn btn--primary inspector__log" type="button" onclick="logCurrentDiscovery()">
+          <svg class="icon" aria-hidden="true"><use id="addDiscoveryIcon" href="#i-bookmark"/></svg>
+          <span id="addDiscoveryLabel">Add to discoveries log</span>
+        </button>
+      </aside>
+    </section>
+
+    <!-- ===================== ASK AYLA ===================== -->
+    <section id="modeAsk" class="mode mode--page" hidden aria-labelledby="askTitle">
+      <div class="page page--chat">
+        <header class="page__head">
+          <p class="eyebrow">Guided archive</p>
+          <h2 id="askTitle" class="page__title">Ask AYLA</h2>
+          <p class="page__note">AYLA answers from a built-in set of pre-written notes. It is not a live AI model, so it can only speak about the topics suggested below.</p>
+        </header>
+
+        <div id="chatWindow" class="chat" role="log" aria-live="polite" aria-relevant="additions">
+          <article class="msg msg--ayla">
+            <p class="msg__who">AYLA</p>
+            <p class="msg__text">Greetings, Explorer. I am AYLA, your guide to the cosmos. Ask me about black holes, planets, stars or galaxies.</p>
+          </article>
+        </div>
+
+        <div id="chatChips" class="chips" role="group" aria-label="Suggested topics"></div>
+
+        <form class="composer" onsubmit="handleChatSubmit(event)" autocomplete="off">
+          <label class="sr-only" for="chatInput">Ask AYLA a question</label>
+          <input id="chatInput" class="composer__input" type="text" placeholder="Ask about the cosmos…" maxlength="240" enterkeyhint="send">
+          <button class="icon-btn icon-btn--solid" type="submit" aria-label="Send question"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================== CREATE ===================== -->
+    <section id="modeCreate" class="mode mode--create" hidden aria-label="Create worlds and galaxies">
+      <div id="sandboxCanvasContainer" class="stage" aria-hidden="true"></div>
+
+      <aside id="labPanel" class="lab" aria-labelledby="labTitle">
+        <div class="lab__head">
+          <div>
+            <p class="eyebrow">Create</p>
+            <h2 id="labTitle" class="lab__title">Creator Lab</h2>
+          </div>
+          <button class="icon-btn lab__toggle" type="button" id="labToggle" onclick="toggleLab()" aria-expanded="true" aria-controls="labBody" aria-label="Collapse the lab"><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+        </div>
+
+        <div id="labBody" class="lab__body">
+          <div class="tabs" role="tablist" aria-label="What to create">
+            <button id="tab-world" class="tabs__btn" role="tab" type="button" aria-selected="true" aria-controls="panel-world" onclick="setLabTab('world')">World</button>
+            <button id="tab-galaxy" class="tabs__btn" role="tab" type="button" aria-selected="false" aria-controls="panel-galaxy" tabindex="-1" onclick="setLabTab('galaxy')">Galaxy</button>
+          </div>
+
+          <form id="panel-world" class="lab__form" role="tabpanel" aria-labelledby="tab-world" onsubmit="event.preventDefault(); addCustomPlanet();">
+            <div class="field">
+              <label for="createName">Planet name</label>
+              <input id="createName" type="text" value="New Terra" maxlength="28" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="createType">Type</label>
+              <select id="createType">
+                <option value="oceanic">Oceanic</option>
+                <option value="desert">Desert</option>
+                <option value="barren">Barren, cratered</option>
+                <option value="ice">Ice</option>
+                <option value="gas">Gas giant</option>
+                <option value="iceGiant">Ice giant</option>
+              </select>
+            </div>
+            <div class="field field--range">
+              <label for="createRadius">Body radius</label>
+              <output for="createRadius" id="createRadiusOut">0.8</output>
+              <input id="createRadius" type="range" min="0.3" max="2.5" step="0.1" value="0.8">
+            </div>
+            <div class="field field--range">
+              <label for="createDistance">Orbital distance</label>
+              <output for="createDistance" id="createDistanceOut">10</output>
+              <input id="createDistance" type="range" min="4" max="22" step="0.5" value="10">
+            </div>
+            <div class="field field--range">
+              <label for="createSpeed">Orbit speed</label>
+              <output for="createSpeed" id="createSpeedOut">1.0</output>
+              <input id="createSpeed" type="range" min="0.2" max="3" step="0.1" value="1">
+            </div>
+            <div class="field field--inline">
+              <label for="createColor">Tint</label>
+              <input id="createColor" type="color" value="#00f0ff">
+              <span class="field__hint">Colours the surface of your world</span>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-create"/></svg><span>Form world</span></button>
+          </form>
+
+          <form id="panel-galaxy" class="lab__form" role="tabpanel" aria-labelledby="tab-galaxy" hidden onsubmit="event.preventDefault(); addCustomGalaxy();">
+            <div class="field">
+              <label for="galaxyName">Galaxy name</label>
+              <input id="galaxyName" type="text" value="Nova Spiral" maxlength="28" autocomplete="off">
+            </div>
+            <div class="field field--range">
+              <label for="galaxyArms">Spiral arms</label>
+              <output for="galaxyArms" id="galaxyArmsOut">3</output>
+              <input id="galaxyArms" type="range" min="2" max="5" step="1" value="3">
+            </div>
+            <div class="field field--range">
+              <label for="galaxySize">Size</label>
+              <output for="galaxySize" id="galaxySizeOut">16</output>
+              <input id="galaxySize" type="range" min="8" max="30" step="1" value="16">
+            </div>
+            <div class="field field--range">
+              <label for="galaxyTilt">Tilt</label>
+              <output for="galaxyTilt" id="galaxyTiltOut">55°</output>
+              <input id="galaxyTilt" type="range" min="0" max="85" step="5" value="55">
+            </div>
+            <div class="field field--inline">
+              <label for="galaxyColor">Arm tint</label>
+              <input id="galaxyColor" type="color" value="#8f7bff">
+              <span class="field__hint">The core stays warm gold</span>
+            </div>
+            <button class="btn btn--primary btn--block" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-galaxy"/></svg><span>Form galaxy</span></button>
+          </form>
+
+          <section class="lab__section" aria-label="System controls">
+            <h3 class="eyebrow">System controls</h3>
+            <div class="lab__controls">
+              <button id="pauseSandboxBtn" class="text-btn" type="button" onclick="toggleSandboxPause()"><svg class="icon" aria-hidden="true"><use id="pauseSandboxIcon" href="#i-pause"/></svg><span id="pauseSandboxLabel">Pause</span></button>
+              <button class="text-btn" type="button" onclick="resetSandbox()"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg><span>Reset</span></button>
+              <button id="orbitToggleBtn" class="text-btn" type="button" onclick="toggleSandboxOrbits()" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-orbit"/></svg><span>Orbit lines</span></button>
+            </div>
+          </section>
+
+          <section class="lab__section" aria-label="Created bodies">
+            <h3 class="eyebrow">Active bodies</h3>
+            <ul id="customPlanetList" class="bodies-created"></ul>
+          </section>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ===================== DISCOVERIES LOG ===================== -->
+    <section id="modeDiscoveries" class="mode mode--page" hidden aria-labelledby="logTitle">
+      <div class="page page--log">
+        <header class="page__head page__head--split">
+          <div>
+            <p class="eyebrow">Your journey</p>
+            <h2 id="logTitle" class="page__title">Discoveries log</h2>
+            <p class="page__note">Bodies you inspect in Explore and choose to log are kept here, on this device.</p>
+          </div>
+          <div class="progress">
+            <span class="eyebrow">Exploration progress</span>
+            <span id="discoveryProgressText" class="progress__value">0 / 6 (0%)</span>
+            <span class="progress__bar" aria-hidden="true"><span id="discoveryProgressBar"></span></span>
+          </div>
+        </header>
+
+        <ul class="badges" aria-label="Badges">
+          <li id="badge-novice" class="badge"><svg class="icon" aria-hidden="true"><use href="#i-badge-novice"/></svg><h3>Stargazer</h3><p>Log 1 celestial body</p></li>
+          <li id="badge-cartographer" class="badge"><svg class="icon" aria-hidden="true"><use href="#i-badge-cartographer"/></svg><h3>Cartographer</h3><p>Log 3 celestial bodies</p></li>
+          <li id="badge-master" class="badge"><svg class="icon" aria-hidden="true"><use href="#i-badge-master"/></svg><h3>Cosmic Scholar</h3><p>Log every body</p></li>
+          <li id="badge-ayla" class="badge"><svg class="icon" aria-hidden="true"><use href="#i-badge-ayla"/></svg><h3>Ayla Seeker</h3><p>Find Ayla Prime</p></li>
+        </ul>
+
+        <div id="logEntriesGrid" class="entries">
+          <p id="emptyLogNotice" class="entries__empty">Nothing logged yet. Open <strong>Explore</strong>, choose a body and add it to your log.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================== WELCOME (first visit) ===================== -->
+  <section id="onboardingModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="modal__panel modal__panel--welcome">
+      <p class="eyebrow">Welcome</p>
+      <h2 id="welcomeTitle" class="modal__title">Explorer, the sky is open</h2>
+      <ul class="welcome">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-explore"/></svg><div><h3>Explore</h3><p>Fly through the solar system in 3D, inspect every body and log what you find.</p></div></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-ask"/></svg><div><h3>Ask AYLA</h3><p>A guide with pre-written notes on black holes, planets, stars and galaxies.</p></div></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-create"/></svg><div><h3>Create</h3><p>Form your own worlds and galaxies and set them in motion.</p></div></li>
+      </ul>
+      <div class="modal__actions">
+        <button class="text-btn" type="button" onclick="dismissOnboarding(true)">Don’t show this again</button>
+        <button id="startExplorationBtn" class="btn btn--primary" type="button" onclick="dismissOnboarding(false)"><span>Start exploring</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <section id="settingsModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal__panel">
+      <div class="modal__head">
+        <div><p class="eyebrow">Preferences</p><h2 id="settingsTitle" class="modal__title">Settings</h2></div>
+        <button class="icon-btn" type="button" onclick="closeSettingsModal()" aria-label="Close settings"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+
+      <ul class="settings">
+        <li class="settings__row">
+          <div><label for="reduceMotionToggle" class="settings__name">Reduced motion &amp; particles</label><p class="settings__desc">Slower orbits, fewer particles and no camera sweeps. Better for battery and for sensitivity to motion.</p></div>
+          <input type="checkbox" id="reduceMotionToggle" class="switch" role="switch" onchange="toggleReducedMotion()">
+        </li>
+        <li class="settings__row">
+          <div><label for="modalSoundBtn" class="settings__name">Ambient audio</label><p class="settings__desc">A soft drone synthesised in your browser. No audio files are loaded.</p></div>
+          <input type="checkbox" id="modalSoundBtn" class="switch" role="switch" onchange="toggleAudio()">
+        </li>
+        <li class="settings__row">
+          <div><label for="labelsToggle" class="settings__name">Body labels</label><p class="settings__desc">Show names next to planets and stars in the 3D views.</p></div>
+          <input type="checkbox" id="labelsToggle" class="switch" role="switch" checked onchange="toggleLabels()">
+        </li>
+        <li class="settings__row settings__row--danger">
+          <div><span class="settings__name">Saved data</span><p class="settings__desc">Clears your discoveries and shows the welcome screen again.</p></div>
+          <button class="btn btn--danger" type="button" onclick="resetAllData()">Clear data</button>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span id="toastMsg">Discovery recorded in your log</span></div>
+
+  <script src="js/catalog.js"></script>
+  <script src="js/gl.js"></script>
+  <script src="js/shaders.js"></script>
+  <script src="js/universe.js"></script>
+  <script src="js/fallback.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
