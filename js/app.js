@@ -511,19 +511,40 @@
     log.scrollTop = log.scrollHeight;
     return art;
   }
+const WORKER_URL = 'https://ayla-backend.ayla-olvmoraes.workers.dev';
+let chatHistory = [];
+  async function askQuestion(text) {
+  addMessage('you', text);
+  const typing = addMessage('ayla', '', 'msg--typing');
+  typing.setAttribute('aria-hidden', 'true');
+  const tp = typing.querySelector('.msg__text');
+  for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.textContent = '.'; tp.append(s); }
 
-  function askQuestion(text) {
-    addMessage('you', text);
-    const typing = addMessage('ayla', '', 'msg--typing');
-    typing.setAttribute('aria-hidden', 'true');
-    const tp = typing.querySelector('.msg__text');
-    for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.textContent = '·'; tp.append(s); }
-    const wait = reduced() ? 120 : 620 + Math.random() * 420;
-    global.setTimeout(() => {
-      typing.remove();
-      addMessage('ayla', answerFor(text));
-    }, wait);
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: text,
+        history: chatHistory
+      })
+    });
+
+    const data = await res.json();
+    typing.remove();
+
+    if (res.ok && data.response) {
+      addMessage('ayla', data.response);
+      chatHistory.push({ role: 'user', text: text });
+      chatHistory.push({ role: 'model', text: data.response });
+    } else {
+      addMessage('ayla', 'Desculpe, tive um pequeno problema ao conectar com as estrelas. Tente novamente em instantes!');
+    }
+  } catch (err) {
+    typing.remove();
+    addMessage('ayla', 'Não foi possível se conectar ao universo de dados. Verifique sua conexão!');
   }
+}
 
   function handleChatSubmit(e) {
     if (e && e.preventDefault) e.preventDefault();

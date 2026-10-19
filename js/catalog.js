@@ -23,6 +23,36 @@
       dist: 0,
       speed: 0
     },
+    'Mercury': {
+      name: 'Mercury',
+      type: 'Terrestrial Planet',
+      diameter: '4,879 km',
+      temp: '167 °C average · 430 °C by day, −180 °C by night',
+      orbit: '88 days',
+      composition: 'Iron core, silicate rock',
+      desc: 'The smallest planet and the closest to the Sun, a cratered world with almost no atmosphere.',
+      trivia: 'One day on Mercury, from sunrise to sunrise, lasts about 176 Earth days, twice as long as its year.',
+      color: 0xb5a59a,
+      css: '#b9a99b',
+      radius: 0.4,
+      dist: 6,
+      speed: 0.026
+    },
+    'Venus': {
+      name: 'Venus',
+      type: 'Terrestrial Planet',
+      diameter: '12,104 km',
+      temp: '464 °C at the surface',
+      orbit: '225 days',
+      composition: 'Carbon dioxide atmosphere, sulphuric acid clouds, basalt rock',
+      desc: 'Earth’s near-twin in size, hidden beneath thick clouds and the hottest planet in the solar system.',
+      trivia: 'Venus spins backwards, and so slowly that its day is longer than its year.',
+      color: 0xe8c27a,
+      css: '#e9c98c',
+      radius: 0.95,
+      dist: 8,
+      speed: 0.019
+    },
     'Earth': {
       name: 'Earth',
       type: 'Terrestrial Planet',
@@ -83,6 +113,51 @@
       dist: 30,
       speed: 0.005,
       hasRings: true
+    },
+    'Uranus': {
+      name: 'Uranus',
+      type: 'Ice Giant',
+      diameter: '50,724 km',
+      temp: '−197 °C at the cloud tops',
+      orbit: '84 years',
+      composition: 'Hydrogen, helium, methane, water and ammonia ices',
+      desc: 'A pale cyan ice giant that circles the Sun tipped on its side, with faint dark rings.',
+      trivia: 'Uranus is tilted by about 98 degrees, so each pole spends decades in sunlight and then decades in darkness.',
+      color: 0x9fe3e8,
+      css: '#a6e3e9',
+      radius: 1.4,
+      dist: 35,
+      speed: 0.0032
+    },
+    'Neptune': {
+      name: 'Neptune',
+      type: 'Ice Giant',
+      diameter: '49,244 km',
+      temp: '−201 °C at the cloud tops',
+      orbit: '164.8 years',
+      composition: 'Hydrogen, helium, methane, water and ammonia ices',
+      desc: 'The farthest planet from the Sun, a deep blue world lashed by supersonic winds.',
+      trivia: 'Neptune was found in 1846 after mathematics predicted where it had to be, before anyone had seen it through a telescope.',
+      color: 0x3f66e0,
+      css: '#5b82f0',
+      radius: 1.35,
+      dist: 38,
+      speed: 0.0024
+    },
+    'Pluto': {
+      name: 'Pluto',
+      type: 'Dwarf Planet',
+      diameter: '2,377 km',
+      temp: '−229 °C average',
+      orbit: '248 years',
+      composition: 'Rock and water ice, with nitrogen and methane frost',
+      desc: 'A small, icy dwarf planet in the Kuiper Belt, with a heart-shaped plain of frozen nitrogen.',
+      trivia: 'Pluto counted as the ninth planet from its discovery in 1930 until 2006, when it was reclassified as a dwarf planet.',
+      color: 0xd2b8a0,
+      css: '#d6bda4',
+      radius: 0.28,
+      dist: 40,
+      speed: 0.0018
     },
     'Ayla Prime': {
       name: 'Ayla Prime',
@@ -152,6 +227,31 @@
       answer: 'Saturn’s rings are made mostly of water ice, in pieces from dust grains to house-sized chunks. They stretch for hundreds of thousands of kilometres but are often only tens of metres thick.'
     },
     {
+      id: 'mercury',
+      keys: ['mercury', 'smallest planet', 'closest planet to the sun'],
+      answer: 'Mercury is the smallest planet and the closest to the Sun, only a little larger than Earth’s Moon. It has almost no atmosphere to hold heat, so the surface swings from about 430 °C by day to about −180 °C by night. A year there lasts just 88 Earth days.'
+    },
+    {
+      id: 'venus',
+      keys: ['venus', 'hottest planet', 'morning star', 'evening star'],
+      answer: 'Venus is the hottest planet, with a surface around 464 °C, hotter even than Mercury. Its thick carbon dioxide atmosphere traps heat in a runaway greenhouse effect, and the pressure at the surface is about 90 times that of Earth. It also spins backwards, so slowly that a day lasts longer than its year.'
+    },
+    {
+      id: 'uranus',
+      keys: ['uranus', 'tilted planet', 'planet on its side'],
+      answer: 'Uranus is an ice giant whose pale cyan colour comes from methane in its atmosphere. It is tipped over by about 98 degrees, so it rolls around the Sun on its side. Only one spacecraft has ever visited it, Voyager 2, in 1986.'
+    },
+    {
+      id: 'neptune',
+      keys: ['neptune', 'windiest planet', 'farthest planet', 'most distant planet'],
+      answer: 'Neptune is the most distant planet from the Sun, a deep blue ice giant whose winds blow at more than 2,000 km/h, the fastest measured in the solar system. It was discovered in 1846 after mathematicians predicted its position from irregularities in Uranus’s orbit. One lap around the Sun takes about 165 Earth years.'
+    },
+    {
+      id: 'pluto',
+      keys: ['pluto', 'dwarf planet', 'dwarf planets', 'kuiper belt'],
+      answer: 'Pluto is a dwarf planet in the Kuiper Belt, about 2,377 km wide. It counted as the ninth planet after its discovery in 1930, until astronomers reclassified it in 2006. NASA’s New Horizons spacecraft flew past it in 2015 and revealed mountains of water ice and a heart-shaped plain of frozen nitrogen.'
+    },
+    {
       id: 'moon',
       keys: ['moon', 'the moon', 'tides', 'lunar'],
       answer: 'The Moon is Earth’s only natural satellite, about 384,400 km away. Its gravity raises the ocean tides, and it keeps Earth’s axial tilt relatively stable. You can spot it orbiting Earth in Explore.'
@@ -183,14 +283,15 @@
     }
   ];
 
-  const FALLBACK_ANSWER = 'I do not have a prepared answer for that one. I can talk about black holes, time and gravity, the Sun, Earth, Mars, Jupiter, Saturn’s rings, the Moon, nebulae, galaxies, exoplanets and Ayla Prime, or explain how the Create lab works.';
+  const FALLBACK_ANSWER = 'I do not have a prepared answer for that one. I can talk about black holes, time and gravity, the Sun, the planets from Mercury to Neptune, Pluto, Saturn’s rings, the Moon, nebulae, galaxies, exoplanets and Ayla Prime, or explain how the Create lab works.';
 
   const SUGGESTIONS = [
     { label: 'Black holes', prompt: 'Explain how black holes warp time and light.' },
     { label: 'Life on Mars', prompt: 'What would human life on Mars require?' },
     { label: 'Star birth', prompt: 'How are stars born inside nebulas?' },
     { label: 'Saturn’s rings', prompt: 'What are Saturn’s rings made of?' },
-    { label: 'Ayla Prime', prompt: 'What is Ayla Prime star?' }
+    { label: 'Ayla Prime', prompt: 'What is Ayla Prime star?' },
+    { label: 'Venus', prompt: 'Why is Venus the hottest planet?' }
   ];
 
   const BADGES = [
