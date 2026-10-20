@@ -30,6 +30,7 @@
     enterRequested: false,
     selected: null,
     discoveries: {},       // body name -> ISO date
+    creations: {},         // Creator Lab designs saved to the log, by id (kept apart so badges still count only real bodies)
     prefs: { reduceMotion: null, labels: true, onboardingDone: false },
     sound: false,
     sandboxPaused: false,
@@ -50,6 +51,12 @@
         if (d.discoveries && typeof d.discoveries === 'object') {
           Object.keys(d.discoveries).forEach((k) => { if (CAT[k]) state.discoveries[k] = String(d.discoveries[k]); });
         }
+        if (d.creations && typeof d.creations === 'object') {
+          Object.keys(d.creations).slice(0, MAX_CREATIONS).forEach((k) => {
+            const c = cleanCreation(Object.assign({}, d.creations[k], { id: k }));
+            if (c) state.creations[c.id] = c;
+          });
+        }
         if (d.prefs && typeof d.prefs === 'object') {
           if (typeof d.prefs.reduceMotion === 'boolean') state.prefs.reduceMotion = d.prefs.reduceMotion;
           if (typeof d.prefs.labels === 'boolean') state.prefs.labels = d.prefs.labels;
@@ -59,7 +66,7 @@
     } catch (_) { /* storage unavailable or corrupt: start fresh */ }
   }
   function saveStore() {
-    try { global.localStorage.setItem(STORE_KEY, JSON.stringify({ discoveries: state.discoveries, prefs: state.prefs })); } catch (_) { /* ignore */ }
+    try { global.localStorage.setItem(STORE_KEY, JSON.stringify({ discoveries: state.discoveries, creations: state.creations, prefs: state.prefs })); } catch (_) { /* ignore */ }
   }
   function clearStore() {
     try { global.localStorage.removeItem(STORE_KEY); } catch (_) { /* ignore */ }
@@ -232,6 +239,7 @@
         stageExplorer: $('threeCanvasContainer'), stageSandbox: $('sandboxCanvasContainer'), catalog: CAT,
         reduced: reduced(), labels: state.prefs.labels, onSelect: (k) => { if (state.mode === 'explore') focusBody(k); }, onSandboxChange: renderSandboxList
       });
+      syncLabSupport();
       state.engine.setMode(state.mode);
       state.engine.start();
       if (state.selected) state.engine.focusBody(state.selected);
@@ -245,6 +253,7 @@
     setIntroProgress(1);
     if (!state.usingFallback) $('introStatus').textContent = 'The universe is ready';
     node.classList.add('is-ready');
+    syncLabSupport();
     btn.setAttribute('aria-busy', 'false');
     if (state.enterRequested) enterUniverse();
   }
@@ -339,7 +348,7 @@
       log.scrollTop = log.scrollHeight;
       if (!mqCoarse.matches) global.setTimeout(() => $('chatInput').focus({ preventScroll: true }), 60);
     }
-    if (mode === 'create' && state.engine) state.engine.sandbox.overview();
+    if (mode === 'create') enterLab();
     updateViewShift();
   }
 
@@ -460,7 +469,8 @@
 
     const grid = $('logEntriesGrid');
     grid.querySelectorAll('.entry').forEach((n) => n.remove());
-    $('emptyLogNotice').hidden = keys.length > 0;
+    const mine = Object.keys(state.creations).map((id) => state.creations[id]).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    $('emptyLogNotice').hidden = keys.length > 0 || mine.length > 0;
     keys.forEach((key) => {
       const d = CAT[key];
       const art = document.createElement('article');
@@ -475,6 +485,7 @@
       art.append(h, meta, desc, tri);
       grid.append(art);
     });
+    mine.forEach((c) => grid.append(creationEntry(c)));
   }
 
   /* ------------------------------------------------------------------ *
@@ -574,6 +585,7 @@ let chatHistory = [];
     if (!el || !out) return;
     const paint = () => { out.textContent = fmt(el.value); };
     el.addEventListener('input', paint);
+    RANGE_PAINT[id] = paint;
     paint();
   }
 
@@ -585,6 +597,7 @@ let chatHistory = [];
     $('tab-galaxy').tabIndex = world ? -1 : 0;
     $('panel-world').hidden = !world;
     $('panel-galaxy').hidden = world;
+    labTabChanged(world);
   }
 
   function toggleLab() {
@@ -605,15 +618,15 @@ let chatHistory = [];
     const E = state.engine;
     if (!E) return;
     if (counts().worlds >= LIMITS.worlds) { toast('That is plenty of worlds. Remove one to add another.', 'i-overview'); return; }
-    const name = ($('createName').value || '').trim() || 'Unnamed world';
-    const res = E.sandbox.addPlanet({
-      name, type: $('createType').value,
-      radius: parseFloat($('createRadius').value), dist: parseFloat($('createDistance').value),
-      speed: parseFloat($('createSpeed').value), color: $('createColor').value
-    });
+    const spec = readWorld();
+    const name = spec.name;
+    spec.fromDraft = true;                 // the world forms where its live preview was orbiting
+    const res = E.sandbox.addPlanet(spec);
     if (res && res.id) E.sandbox.focus(res.id);
     if (res && res.adjusted) toast(res.name + ' was placed at ' + res.dist.toFixed(1) + ' so it clears the star', 'i-orbit');
     else toast(name + ' has formed', 'i-check');
+    LAB.seed = newSeed();                  // the next world gets a fresh surface; its preview returns on the next change
+    LAB.hold = true;
   }
 
   function addCustomGalaxy() {
@@ -623,8 +636,9 @@ let chatHistory = [];
     const name = ($('galaxyName').value || '').trim() || 'Unnamed galaxy';
     E.sandbox.addGalaxy({
       name, arms: parseInt($('galaxyArms').value, 10), size: parseFloat($('galaxySize').value),
-      tilt: parseFloat($('galaxyTilt').value), color: $('galaxyColor').value
+      tilt: parseFloat($('galaxyTilt').value), color: $('galaxyColor').value, seed: LAB.gSeed
     });
+    LAB.gSeed = newSeed();
     toast(name + ' has formed', 'i-galaxy');
   }
 
@@ -651,9 +665,367 @@ let chatHistory = [];
       const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'icon-btn'; rm.setAttribute('aria-label', 'Remove ' + it.name);
       rm.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>';
       rm.addEventListener('click', () => { if (state.engine) state.engine.sandbox.remove(it.id); });
-      li.append(sw, nameBtn, rm);
+      const actions = document.createElement('span'); actions.className = 'lab-actions';
+      if (it.spec) {
+        const saved = isSaved(it);
+        const sv = document.createElement('button'); sv.type = 'button'; sv.className = 'icon-btn';
+        sv.disabled = saved;
+        sv.setAttribute('aria-label', saved ? it.name + ' is in your discoveries log' : 'Save ' + it.name + ' to the discoveries log');
+        sv.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#' + (saved ? 'i-check' : 'i-bookmark') + '"/></svg>';
+        sv.addEventListener('click', () => saveCreation(creationFromItem(it)));
+        actions.append(sv);
+      }
+      actions.append(rm);
+      li.append(sw, nameBtn, actions);
       ul.append(li);
     });
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Creator Lab: live preview, shaping controls, saving designs to the log
+   *  The extra controls are built here (and skipped if the markup already has them),
+   *  so the existing lab panel keeps working unchanged.
+   * ------------------------------------------------------------------ */
+  const WORLD_LABELS = { oceanic: 'Oceanic world', desert: 'Desert world', barren: 'Barren world', ice: 'Ice world', gas: 'Gas giant', iceGiant: 'Ice giant' };
+  const MAX_CREATIONS = 30;
+  const RANGE_PAINT = {};
+  const newSeed = () => 1 + Math.floor(Math.random() * 9998);
+  const newCreationId = () => 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+  const LAB = { seed: newSeed(), gSeed: newSeed(), raf: 0, hold: false, defaulted: false };
+
+  const labSupported = () => !!(state.engine && state.engine.sandbox && state.engine.sandbox.preview);
+  const worldTabActive = () => { const t = $('tab-world'); return !t || t.getAttribute('aria-selected') !== 'false'; };
+  const numVal = (id, d) => { const n = $(id); const v = n ? parseFloat(n.value) : NaN; return isFinite(v) ? v : d; };
+
+  function setVal(id, v) {
+    const n = $(id);
+    if (!n) return;
+    n.value = v;
+    if (RANGE_PAINT[id]) RANGE_PAINT[id]();
+  }
+
+  /* what the controls describe right now: the same object feeds the live preview and the formed world */
+  function readWorld() {
+    const w = {
+      name: ($('createName').value || '').trim() || 'Unnamed world',
+      type: $('createType').value,
+      radius: parseFloat($('createRadius').value), dist: parseFloat($('createDistance').value),
+      speed: parseFloat($('createSpeed').value), color: $('createColor').value,
+      seed: LAB.seed
+    };
+    if ($('createSpin')) {
+      w.spin = numVal('createSpin', 0.4);
+      w.tiltDeg = numVal('createTilt', 15);
+      w.detail = numVal('createDetail', 0.5);
+      w.bright = numVal('createBright', 1);
+      w.glow = numVal('createGlow', 0);
+      w.atmo = numVal('createAtmo', 1);
+      w.atmoColor = $('createAtmoColor').value;
+    }
+    return w;
+  }
+  function readGalaxy() {
+    return {
+      name: ($('galaxyName').value || '').trim() || 'Unnamed galaxy',
+      arms: parseInt($('galaxyArms').value, 10), size: parseFloat($('galaxySize').value),
+      tilt: parseFloat($('galaxyTilt').value), color: $('galaxyColor').value, seed: LAB.gSeed
+    };
+  }
+
+  /* ---- live preview ---- */
+  function previewReady() { return labSupported() && state.mode === 'create' && worldTabActive(); }
+
+  function schedulePreview() {
+    if (LAB.raf || !previewReady()) return;
+    LAB.raf = global.requestAnimationFrame(() => { LAB.raf = 0; pushPreview(false); });
+  }
+  function pushPreview(focus) {
+    if (!previewReady()) return;
+    const sb = state.engine.sandbox;
+    const res = sb.preview(readWorld());
+    if (res && (focus || res.created)) sb.focusPreview();
+  }
+  function enterLab() {
+    const E = state.engine;
+    if (!E) return;
+    if (!LAB.defaulted) { LAB.defaulted = true; applyTypeDefaults(); }
+    if (LAB.hold || !labSupported() || !worldTabActive()) { E.sandbox.overview(); return; }
+    pushPreview(true);
+  }
+  function labTabChanged(world) {
+    if (!labSupported() || state.mode !== 'create') return;
+    if (world) { LAB.hold = false; pushPreview(true); }
+    else { state.engine.sandbox.clearPreview(); state.engine.sandbox.overview(); }
+  }
+  function applyTypeDefaults() {
+    const sel = $('createType');
+    if (!sel || !$('createAtmo') || !state.engine || !state.engine.sandbox || !state.engine.sandbox.typeDefaults) return;
+    const d = state.engine.sandbox.typeDefaults(sel.value);
+    setVal('createAtmo', d.atmo);
+    setVal('createAtmoColor', d.atmoColor);
+  }
+  function syncLabSupport() {
+    const adv = $('labAdv');
+    if (adv) adv.hidden = !labSupported();
+  }
+
+  /* ---- saving to the discoveries log ---- */
+  function cleanCreation(c) {
+    if (!c || typeof c !== 'object') return null;
+    const kind = c.kind === 'galaxy' ? 'galaxy' : (c.kind === 'world' ? 'world' : '');
+    if (!kind) return null;
+    const p = c.params && typeof c.params === 'object' ? c.params : {};
+    const num = (v, lo, hi, d) => { const n = parseFloat(v); return isFinite(n) ? Math.round(Math.max(lo, Math.min(hi, n)) * 1000) / 1000 : d; };
+    const hex = (v, d) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : d);
+    const seed = Math.floor(num(p.seed, 1, 999999, 1));
+    let params;
+    if (kind === 'galaxy') {
+      params = { arms: Math.round(num(p.arms, 2, 5, 3)), size: num(p.size, 8, 30, 16), tilt: num(p.tilt, 0, 85, 55), color: hex(p.color, '#8f7bff'), seed };
+    } else {
+      params = {
+        type: WORLD_LABELS[p.type] ? p.type : 'oceanic', radius: num(p.radius, 0.3, 2.5, 1), dist: num(p.dist, 4, 22, 10), speed: num(p.speed, 0.2, 3, 1),
+        color: hex(p.color, '#00f0ff'), spin: num(p.spin, -2, 2, 0.4), tiltDeg: Math.round(num(p.tiltDeg, 0, 180, 15)),
+        detail: num(p.detail, 0, 1, 0.5), bright: num(p.bright, 0.5, 1.5, 1), glow: num(p.glow, 0, 1, 0),
+        atmo: num(p.atmo, 0, 2, null), atmoColor: hex(p.atmoColor, ''), seed
+      };
+    }
+    return {
+      id: typeof c.id === 'string' && /^[a-z0-9]{3,24}$/i.test(c.id) ? c.id : newCreationId(),
+      kind,
+      name: String(c.name || '').trim().slice(0, 28) || (kind === 'galaxy' ? 'Unnamed galaxy' : 'Unnamed world'),
+      params,
+      date: typeof c.date === 'string' && !isNaN(Date.parse(c.date)) ? c.date : new Date().toISOString()
+    };
+  }
+  const creationKey = (c) => JSON.stringify([c.kind, c.name, c.params]);
+  const creationFromItem = (it) => (it && it.spec ? cleanCreation({ id: newCreationId(), kind: it.kind, name: it.name, params: it.spec }) : null);
+  function isSaved(it) {
+    const c = creationFromItem(it);
+    return !!c && Object.keys(state.creations).some((k) => creationKey(state.creations[k]) === creationKey(c));
+  }
+
+  function saveCreation(c) {
+    if (!c) return false;
+    const key = creationKey(c);
+    const ids = Object.keys(state.creations);
+    if (ids.some((k) => creationKey(state.creations[k]) === key)) { toast(c.name + ' is already in your discoveries log', 'i-check'); return false; }
+    if (ids.length >= MAX_CREATIONS) { toast('Your log holds ' + MAX_CREATIONS + ' creations. Remove one to save another.', 'i-overview'); return false; }
+    state.creations[c.id] = c;
+    saveStore();
+    renderLog();
+    renderSandboxList(state.sandboxItems);
+    toast(c.name + ' saved to your discoveries log', 'i-bookmark');
+    return true;
+  }
+  function saveWorldDesign() {
+    const w = readWorld();
+    saveCreation(cleanCreation({ id: newCreationId(), kind: 'world', name: w.name, params: w }));
+  }
+  function saveGalaxyDesign() {
+    const g = readGalaxy();
+    saveCreation(cleanCreation({ id: newCreationId(), kind: 'galaxy', name: g.name, params: g }));
+  }
+  function removeCreation(id) {
+    const c = state.creations[id];
+    if (!c) return;
+    delete state.creations[id];
+    saveStore();
+    renderLog();
+    renderSandboxList(state.sandboxItems);
+    toast(c.name + ' removed from your log', 'i-trash');
+  }
+
+  /* loads a saved design back into the lab, where it can be previewed, changed and formed */
+  function openCreation(id) {
+    const c = state.creations[id];
+    if (!c) return;
+    const p = c.params;
+    switchMode('create');
+    if (c.kind === 'galaxy') {
+      setLabTab('galaxy');
+      setVal('galaxyName', c.name); setVal('galaxyArms', p.arms); setVal('galaxySize', p.size);
+      setVal('galaxyTilt', p.tilt); setVal('galaxyColor', p.color);
+      LAB.gSeed = p.seed;
+    } else {
+      setLabTab('world');
+      setVal('createName', c.name); setVal('createType', p.type);
+      setVal('createRadius', p.radius); setVal('createDistance', p.dist); setVal('createSpeed', p.speed); setVal('createColor', p.color);
+      if ($('createSpin')) {
+        const def = state.engine && state.engine.sandbox && state.engine.sandbox.typeDefaults ? state.engine.sandbox.typeDefaults(p.type) : { atmo: 1, atmoColor: '#2b63ff' };
+        setVal('createSpin', p.spin); setVal('createTilt', p.tiltDeg); setVal('createDetail', p.detail);
+        setVal('createBright', p.bright); setVal('createGlow', p.glow);
+        setVal('createAtmo', p.atmo === null ? def.atmo : p.atmo);
+        setVal('createAtmoColor', p.atmoColor || def.atmoColor);
+      }
+      LAB.seed = p.seed;
+      LAB.hold = false;
+      pushPreview(true);
+    }
+    toast(c.name + ' is open in the lab', 'i-check');
+  }
+
+  function describeCreation(c) {
+    const p = c.params;
+    if (c.kind === 'galaxy') return 'A spiral galaxy with ' + p.arms + ' arms, size ' + p.size + ', seen at a ' + Math.round(p.tilt) + '° tilt.';
+    const atmo = p.atmo === null ? (p.type === 'barren' ? 0 : 1) : p.atmo;
+    const parts = [
+      p.radius.toFixed(1) + '× Earth’s radius', 'orbit ' + p.dist, 'tilt ' + p.tiltDeg + '°',
+      'spin ' + (p.spin < 0 ? 'retrograde ' : '') + Math.abs(p.spin).toFixed(1) + '×',
+      atmo > 0.03 ? 'atmosphere ' + Math.round(atmo * 100) + '%' : 'no atmosphere'
+    ];
+    if (p.glow > 0.03) parts.push('glow ' + Math.round(p.glow * 100) + '%');
+    return WORLD_LABELS[p.type] + ': ' + parts.join(' · ') + '.';
+  }
+
+  function creationEntry(c) {
+    const art = document.createElement('article');
+    art.className = 'entry entry--creation';
+    const head = document.createElement('div'); head.className = 'creation__head';
+    const dot = document.createElement('span'); dot.className = 'creation__dot'; dot.setAttribute('aria-hidden', 'true'); dot.style.setProperty('--dot', c.params.color);
+    const h = document.createElement('h3'); h.className = 'entry__name'; h.textContent = c.name;
+    head.append(dot, h);
+    const meta = document.createElement('p'); meta.className = 'eyebrow';
+    let when = '';
+    try { when = new Date(c.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) { when = ''; }
+    meta.textContent = 'Your creation · ' + (c.kind === 'galaxy' ? 'galaxy' : WORLD_LABELS[c.params.type].toLowerCase()) + (when ? ' · ' + when : '');
+    const desc = document.createElement('p'); desc.textContent = describeCreation(c);
+    const actions = document.createElement('div'); actions.className = 'creation__actions';
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'btn';
+    open.textContent = 'Open in the lab';
+    open.addEventListener('click', () => openCreation(c.id));
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'icon-btn'; rm.setAttribute('aria-label', 'Remove ' + c.name + ' from your log');
+    rm.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>';
+    rm.addEventListener('click', () => removeCreation(c.id));
+    actions.append(open, rm);
+    art.append(head, meta, desc, actions);
+    return art;
+  }
+
+  /* ---- the extra controls ---- */
+  function mk(tag, props, kids) {
+    const n = document.createElement(tag);
+    Object.keys(props || {}).forEach((k) => {
+      if (k === 'class') n.className = props[k];
+      else if (k === 'text') n.textContent = props[k];
+      else n.setAttribute(k, props[k]);
+    });
+    (kids || []).forEach((c) => n.append(c));
+    return n;
+  }
+  function labRange(id, label, attrs, hint) {
+    const row = mk('div', { class: 'lab-adv__row' }, [
+      mk('label', { for: id, text: label }),
+      mk('input', Object.assign({ type: 'range', id }, attrs)),
+      mk('output', { id: id + 'Out', for: id })
+    ]);
+    if (hint) row.title = hint;
+    return row;
+  }
+  function labButton(id, icon, text) {
+    const b = mk('button', { type: 'button', id, class: 'btn' });
+    b.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#' + icon + '"/></svg><span></span>';
+    b.lastChild.textContent = text;
+    return b;
+  }
+  /* the nearest ancestor of `node` that sits directly in `panel` (so new rows go beside the form's own button, not inside its wrapper) */
+  function directChild(panel, node) {
+    let n = node;
+    while (n && n.parentNode !== panel) n = n.parentNode;
+    return n || null;
+  }
+
+  function injectLabStyles() {
+    if ($('labExtraStyles')) return;
+    const css = [
+      '.lab-adv{margin:14px 0 6px;padding-top:6px;border-top:1px solid rgba(150,170,255,.18)}',
+      '.lab-adv>summary{display:flex;align-items:center;gap:10px;min-height:36px;cursor:pointer;list-style:none;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase}',
+      '.lab-adv>summary::-webkit-details-marker{display:none}',
+      '.lab-adv>summary small{margin-left:auto;font-size:.68rem;letter-spacing:.04em;text-transform:none;opacity:.6}',
+      '.lab-adv>summary::after{content:"+";opacity:.75;font-size:1.1rem;line-height:1}',
+      '.lab-adv[open]>summary::after{content:"\\2212"}',
+      '.lab-adv summary:focus-visible,.lab-adv button:focus-visible,.lab-adv input:focus-visible,.lab-adv__save button:focus-visible{outline:2px solid #8fe6f5;outline-offset:2px}',
+      '.lab-adv__row{display:grid;grid-template-columns:96px minmax(0,1fr) 46px;align-items:center;gap:10px;margin:8px 0;font-size:.82rem}',
+      '.lab-adv__row label{opacity:.85}',
+      '.lab-adv__row input[type=range]{width:100%;min-width:0;margin:0;accent-color:#8fe6f5}',
+      '.lab-adv__row input[type=color]{width:100%;height:30px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:none;cursor:pointer}',
+      '.lab-adv__row output{text-align:right;font-variant-numeric:tabular-nums;opacity:.8}',
+      '.lab-adv__actions,.lab-adv__save{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
+      '.lab-adv__actions .btn,.lab-adv__save .btn{display:inline-flex;align-items:center;gap:6px}',
+      '.lab-actions{display:inline-flex;align-items:center;gap:2px}',
+      '.entry--creation .creation__head{display:flex;align-items:center;gap:10px}',
+      '.creation__dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--dot,#8fe6f5);box-shadow:0 0 10px var(--dot,#8fe6f5)}',
+      '.creation__actions{display:flex;align-items:center;gap:8px;margin-top:10px}'
+    ].join('\n');
+    const st = document.createElement('style');
+    st.id = 'labExtraStyles';
+    st.textContent = css;
+    document.head.appendChild(st);
+  }
+
+  function buildLabExtras() {
+    if ($('createSpin')) return;                      // the markup already provides them
+    const pw = $('panel-world'), pg = $('panel-galaxy');
+    if (!pw) return;
+
+    const adv = mk('details', { class: 'lab-adv', id: 'labAdv' });
+    adv.open = global.innerWidth >= 900;
+    adv.append(mk('summary', {}, [mk('span', { text: 'Shape the world' }), mk('small', { text: 'rotation · surface · glow · atmosphere' })]));
+    adv.append(
+      labRange('createSpin', 'Rotation', { min: '-2', max: '2', step: '0.1', value: '0.4' }, 'Spin speed. Negative values spin the other way (retrograde).'),
+      labRange('createTilt', 'Axial tilt', { min: '0', max: '180', step: '1', value: '15' }, 'How far the spin axis leans. Uranus is about 98°.'),
+      labRange('createDetail', 'Surface detail', { min: '0', max: '1', step: '0.05', value: '0.5' }, 'Relief and craters on rocky worlds, clouds on oceanic ones, storms on giants.'),
+      labRange('createBright', 'Brightness', { min: '0.5', max: '1.5', step: '0.05', value: '1' }, 'How light or dark the surface looks.'),
+      labRange('createGlow', 'Glow', { min: '0', max: '1', step: '0.05', value: '0' }, 'A soft halo around the world.'),
+      labRange('createAtmo', 'Atmosphere', { min: '0', max: '2', step: '0.05', value: '1' }, 'Thickness of the atmosphere. 0 removes it.')
+    );
+    adv.append(mk('div', { class: 'lab-adv__row' }, [
+      mk('label', { for: 'createAtmoColor', text: 'Atmosphere tint' }),
+      mk('input', { type: 'color', id: 'createAtmoColor', value: '#2b63ff' }),
+      mk('span')
+    ]));
+    const reroll = labButton('labRerollBtn', 'i-reset', 'New surface');
+    const closeup = labButton('labCloseupBtn', 'i-orbit', 'Close-up');
+    const whole = labButton('labWholeBtn', 'i-overview', 'Whole system');
+    adv.append(mk('div', { class: 'lab-adv__actions' }, [reroll, closeup, whole]));
+
+    const saveRow = mk('div', { class: 'lab-adv__save' }, [labButton('labSaveWorldBtn', 'i-bookmark', 'Save to discoveries log')]);
+
+    const formAnchor = directChild(pw, pw.querySelector('[onclick*="addCustomPlanet"]'));
+    pw.insertBefore(adv, formAnchor);
+    pw.insertBefore(saveRow, formAnchor ? formAnchor.nextSibling : null);
+
+    if (pg) {
+      const galAnchor = directChild(pg, pg.querySelector('[onclick*="addCustomGalaxy"]'));
+      const gRow = mk('div', { class: 'lab-adv__save' }, [labButton('labSaveGalaxyBtn', 'i-bookmark', 'Save to discoveries log')]);
+      pg.insertBefore(gRow, galAnchor ? galAnchor.nextSibling : null);
+      $('labSaveGalaxyBtn').addEventListener('click', saveGalaxyDesign);
+    }
+
+    reroll.addEventListener('click', () => { LAB.seed = newSeed(); LAB.hold = false; pushPreview(false); });
+    closeup.addEventListener('click', () => { LAB.hold = false; pushPreview(true); });
+    whole.addEventListener('click', () => { if (state.engine) state.engine.sandbox.overview(); });
+    $('labSaveWorldBtn').addEventListener('click', saveWorldDesign);
+    adv.addEventListener('toggle', updateViewShift);
+  }
+
+  function setupLab() {
+    injectLabStyles();
+    buildLabExtras();
+    if (!$('createSpin')) return;
+    const pct = (v) => Math.round(parseFloat(v) * 100) + '%';
+    bindRange('createSpin', (v) => { const n = parseFloat(v); return (n < 0 ? '−' : '') + Math.abs(n).toFixed(1); });
+    bindRange('createTilt', (v) => Math.round(v) + '°');
+    bindRange('createDetail', pct);
+    bindRange('createBright', pct);
+    bindRange('createGlow', pct);
+    bindRange('createAtmo', pct);
+    ['createName', 'createType', 'createRadius', 'createDistance', 'createSpeed', 'createColor',
+      'createSpin', 'createTilt', 'createDetail', 'createBright', 'createGlow', 'createAtmo', 'createAtmoColor'].forEach((id) => {
+      const n = $(id);
+      if (!n) return;
+      n.addEventListener('input', () => { LAB.hold = false; schedulePreview(); });
+    });
+    $('createType').addEventListener('change', () => { LAB.hold = false; applyTypeDefaults(); schedulePreview(); });
   }
 
   function toggleSandboxPause() {
@@ -716,11 +1088,13 @@ let chatHistory = [];
     }
     clearStore();
     state.discoveries = {};
+    state.creations = {};
     state.prefs = { reduceMotion: null, labels: true, onboardingDone: false };
     if (state.engine) state.engine.setLabels(true);
     applyMotionPref();
     syncSettingsUI();
     renderLog();
+    renderSandboxList(state.sandboxItems);
     paintDiscoveryButton();
     toast('Saved data cleared', 'i-check');
   }
@@ -907,6 +1281,7 @@ let chatHistory = [];
     bindRange('galaxyArms', (v) => v);
     bindRange('galaxySize', (v) => v);
     bindRange('galaxyTilt', (v) => v + '°');
+    setupLab();
 
     // arrow keys move between the two lab tabs
     $('tab-world').parentNode.addEventListener('keydown', (e) => {

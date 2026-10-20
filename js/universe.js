@@ -173,6 +173,32 @@
       atmo: { beta: [0.11, 0.13, 0.17], thick: 0.05, h: 0.02, int: 0.28 },
       ring: { inner: 1.24, outer: 2.3 }
     },
+    'Mercury': {
+      kind: 'rocky', spin: 0.04, tilt: 0.01, ang0: 3.9,
+      u: { uPal0: [0.15, 0.13, 0.12], uPal1: [0.38, 0.34, 0.31], uPal2: [0.62, 0.57, 0.51], uPal3: [0.28, 0.25, 0.22], uCapCol: [0.9, 0.9, 0.9], uCrat: [0.42, 4.0, 11.0, 0.45], uMaria: 0.7, uCap: 0.0, uBump: 0.11, uSeed: 6.5, uSpec: 0.0, uIce: 0.0, uHue: MAT3_IDENTITY }
+    },
+    'Venus': {
+      // a world of cloud: soft, low-contrast bands, a thick warm haze, and a retrograde (negative) spin
+      kind: 'gas', spin: -0.03, tilt: 0.05, ang0: 5.1,
+      u: { uBand: new Float32Array([0.95, 0.88, 0.66, 0.91, 0.80, 0.55, 0.87, 0.74, 0.48, 0.93, 0.84, 0.60, 0.96, 0.90, 0.72]), uBandFreq: 4.5, uTurb: 0.9, uSeed: 11.0, uContrast: 0.45, uSpot: [0, 0, 0.1, 0.0], uHue: MAT3_IDENTITY, uHasRing: 0.0, uRingN: [0, 1, 0], uCenter: [0, 0, 0], uRingR: [1, 2] },
+      atmo: { beta: [0.22, 0.15, 0.06], thick: 0.055, h: 0.018, int: 0.55 }
+    },
+    'Uranus': {
+      // tipped about 98 degrees, so it rolls around the Sun on its side (a tilt past 90 degrees already makes the spin retrograde)
+      kind: 'gas', spin: 0.28, tilt: 1.71, ang0: 0.4,
+      u: { uBand: new Float32Array([0.70, 0.91, 0.93, 0.63, 0.87, 0.91, 0.57, 0.83, 0.89, 0.66, 0.89, 0.92, 0.74, 0.94, 0.95]), uBandFreq: 5.0, uTurb: 0.25, uSeed: 13.0, uContrast: 0.35, uSpot: [0, 0, 0.1, 0.0], uHue: MAT3_IDENTITY, uHasRing: 0.0, uRingN: [0, 1, 0], uCenter: [0, 0, 0], uRingR: [1, 2] },
+      atmo: { beta: [0.05, 0.16, 0.30], thick: 0.06, h: 0.022, int: 0.5 }
+    },
+    'Neptune': {
+      kind: 'gas', spin: 0.32, tilt: 0.49, ang0: 3.0,
+      u: { uBand: new Float32Array([0.30, 0.46, 0.93, 0.22, 0.36, 0.85, 0.15, 0.27, 0.73, 0.26, 0.42, 0.89, 0.38, 0.56, 0.96]), uBandFreq: 8.0, uTurb: 0.9, uSeed: 14.0, uContrast: 0.9, uSpot: [0, 0, 0.1, 0.0], uHue: MAT3_IDENTITY, uHasRing: 0.0, uRingN: [0, 1, 0], uCenter: [0, 0, 0], uRingR: [1, 2] },
+      atmo: { beta: [0.04, 0.11, 0.34], thick: 0.06, h: 0.022, int: 0.55 }
+    },
+    'Pluto': {
+      kind: 'rocky', spin: 0.06, tilt: 2.09, ang0: 5.9,   // tilted about 120 degrees: retrograde through the tilt alone
+      u: { uPal0: [0.26, 0.18, 0.14], uPal1: [0.58, 0.45, 0.35], uPal2: [0.85, 0.76, 0.66], uPal3: [0.42, 0.30, 0.22], uCapCol: [0.95, 0.93, 0.90], uCrat: [0.12, 2.6, 7.0, 0.25], uMaria: 0.55, uCap: 0.0, uBump: 0.07, uSeed: 15.0, uSpec: 0.0, uIce: 0.0, uHue: MAT3_IDENTITY },
+      atmo: { beta: [0.05, 0.09, 0.20], thick: 0.035, h: 0.011, int: 0.3 }
+    },
     'Ayla Prime': {
       kind: 'star', spin: 0.12, tilt: 0.3, ang0: 1.9,
       u: { uC0: [0.10, 0.02, 0.30], uC1: [0.45, 0.15, 0.85], uC2: [0.85, 0.45, 1.0], uC3: [1.0, 0.85, 1.0], uPulse: 0.07, uWarp: 0.85, uGlow: 1.8, uSeed: 8.0, uScale: 0.42 },
@@ -315,12 +341,36 @@
     return lab;
   }
 
+  /* A catalog entry that has no hand-tuned style above still becomes a body:
+     its look is derived from its type and colour, so new planets added to catalog.js appear in 3D. */
+  function autoStyle(key, d) {
+    const t = String(d.type || '').toLowerCase();
+    const col = typeof d.color === 'number' ? d.color : 0x8fe6f5;
+    const hex = '#' + (col & 0xffffff).toString(16).padStart(6, '0');
+    let h = 7;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+    const seed = (Math.abs(h) % 900) + 20;
+    const ang0 = (seed % 628) / 100;
+    if (/star/.test(t)) {
+      const c = hexToRgb(hex);
+      const dark = c.map((v) => v * 0.25), mid = c.map((v) => v * 0.85), bright = c.map((v) => lerp(v, 1, 0.4)), hot = c.map((v) => lerp(v, 1, 0.85));
+      return {
+        kind: 'star', spin: 0.06, tilt: 0.2, ang0,
+        u: { uC0: dark, uC1: mid, uC2: bright, uC3: hot, uPulse: 0.03, uWarp: 0.3, uGlow: 1.9, uSeed: (seed % 17) + 1, uScale: 0.7 },
+        corona: { color: bright, size: 6.4, amt: 1.0, pulse: 0.03 }
+      };
+    }
+    const type = /ice giant/.test(t) ? 'iceGiant' : (/giant|gas/.test(t) ? 'gas' : (/dwarf|ice/.test(t) ? 'ice' : 'barren'));
+    const W = buildWorldUniforms(type, hex, seed);
+    return { kind: W.kind, spin: 0.18, tilt: 0.25, ang0, u: W.u, atmo: W.atmo };
+  }
+
   function buildExplorer(catalog) {
     const sc = newScene({ theta: -1.25, phi: 1.05, radius: 210, minR: 5, maxR: 180 });
     sc.rig.gTheta = -0.6; sc.rig.gRadius = 84; sc.rig.gPhi = 1.08;
     S.ex = sc;
     Object.keys(catalog).forEach((key) => {
-      const d = catalog[key], st = EXPLORE_STYLE[key];
+      const d = catalog[key], st = EXPLORE_STYLE[key] || autoStyle(key, d);
       if (!st) return;
       const b = makeBody({
         key, name: d.name, data: d, kind: st.kind, radius: d.radius, dist: d.dist,
@@ -395,12 +445,88 @@
     return out;
   }
 
+  /* ---- Creator Lab: look controls layered on top of the procedural world types ----
+     Every control is relative to the type's own look, so with the sliders at their
+     defaults a world is exactly what it was before these controls existed. */
+  const BARREN_ATMO = { beta: [0.10, 0.12, 0.16], thick: 0.04, h: 0.012, int: 0.4 };   // used only if a barren world is given an atmosphere
+
+  function rgbToHex(c) {
+    return '#' + c.map((v) => Math.round(clamp(v, 0, 1) * 255).toString(16).padStart(2, '0')).join('');
+  }
+
+  /* atmosphere: `mul` scales the type's own atmosphere (0 = none, 1 = as designed, 2 = twice as dense), `colorHex` tints it */
+  function buildAtmo(type, mul, colorHex) {
+    const T = WORLD_TYPES[type] || WORLD_TYPES.oceanic;
+    if (mul === undefined && !colorHex) return T.atmo;
+    const base = T.atmo || BARREN_ATMO;
+    const m = clamp(mul === undefined ? (T.atmo ? 1 : 0) : +mul, 0, 2);
+    if (m < 0.03) return null;
+    const bmax = Math.max(base.beta[0], base.beta[1], base.beta[2]);
+    let colN = base.beta.map((b) => b / bmax);
+    if (colorHex) {
+      const c = hexToRgb(colorHex), cm = Math.max(c[0], c[1], c[2]) || 1;
+      colN = c.map((v) => v / cm);
+    }
+    const k = 0.35 + 0.65 * m;
+    return {
+      beta: colN.map((v) => v * bmax * (0.5 + 0.5 * m)),
+      thick: Math.min(base.thick * k, 0.11),
+      h: Math.min(base.h * k, 0.032),
+      int: base.int * (0.3 + 0.7 * m)
+    };
+  }
+
+  /* a soft halo around a planet, drawn by the same corona pass the stars use */
+  function glowCorona(tintHex, glow) {
+    if (!(glow > 0.02)) return null;
+    const t = hexToRgb(tintHex);
+    return { color: [lerp(t[0], 1, 0.3), lerp(t[1], 1, 0.3), lerp(t[2], 1, 0.3)], size: 2.2 + 2.2 * glow, amt: 0.18 + 0.5 * glow, pulse: 0.02 };
+  }
+
+  /* x = { detail 0..1, bright 0.5..1.5, glow 0..1, atmo 0..2, atmoColor }; anything missing keeps the type's default */
+  function worldLook(type, tintHex, seed, x) {
+    x = x || {};
+    const out = buildWorldUniforms(type, tintHex, seed);
+    const u = out.u;
+    const detail = clamp(x.detail !== undefined ? +x.detail : 0.5, 0, 1);
+    const bright = clamp(x.bright !== undefined ? +x.bright : 1, 0.5, 1.5);
+    const rel = 0.4 + 1.2 * detail;                       // 1.0 at the default slider position
+    if (out.kind === 'earth') {
+      u.uBump *= rel;
+      u.uCloudAmt = clamp(u.uCloudAmt * (0.55 + 0.9 * detail), 0, 0.95);
+    } else if (out.kind === 'rocky') {
+      u.uBump *= rel;
+      const c = u.uCrat;
+      u.uCrat = [clamp(c[0] * rel, 0, 0.85), c[1], c[2], c[3]];
+    } else {
+      u.uTurb *= rel;
+      u.uContrast *= 0.6 + 0.8 * detail;
+    }
+    if (bright !== 1) {
+      const m = new Float32Array(u.uHue);
+      for (let i = 0; i < m.length; i++) m[i] *= bright;
+      u.uHue = m;
+    }
+    out.atmo = buildAtmo(type, x.atmo, x.atmoColor);
+    out.corona = glowCorona(tintHex, x.glow);
+    return out;
+  }
+
+  /* what the Lab shows as the starting atmosphere for a type */
+  function typeDefaults(type) {
+    const T = WORLD_TYPES[type] || WORLD_TYPES.oceanic;
+    const base = T.atmo || BARREN_ATMO;
+    const bmax = Math.max(base.beta[0], base.beta[1], base.beta[2]);
+    return { atmo: T.atmo ? 1 : 0, atmoColor: rgbToHex(base.beta.map((b) => b / bmax)) };
+  }
+
   const SB_STAR = { radius: 2.5 };
   let sbId = 1;
 
   function buildSandbox() {
     const sc = newScene({ theta: -0.7, phi: 1.0, radius: 46, minR: 5, maxR: 170 });
     S.sb = sc;
+    sc.draft = null;   // the live preview world of the Creator Lab
     sc.starBody = {
       key: 'star', name: 'Central star', kind: 'star', radius: SB_STAR.radius, dist: 0, pos: [0, 0, 0], spin: 0.04, spinA: 0, tilt: 0.1, moons: [], model: M4.model([0, 0, 0], SB_STAR.radius, 0, 0.1),
       u: { uC0: [0.04, 0.20, 0.46], uC1: [0.18, 0.62, 0.95], uC2: [0.62, 0.90, 1.0], uC3: [0.96, 1.0, 1.0], uPulse: 0.015, uWarp: 0.2, uGlow: 2.0, uSeed: 5.0, uScale: 0.7 },
@@ -413,33 +539,127 @@
   }
 
   function sandboxItems() {
-    return S.sb.bodies.map((b) => ({ id: b.id, name: b.name, kind: 'world', type: b.worldType, color: b.tintHex, radius: b.radius, dist: b.dist, speed: b.speedUser }))
-      .concat(S.sb.galaxies.map((g) => ({ id: g.id, name: g.name, kind: 'galaxy', type: g.arms + ' arms', color: g.tintHex, size: g.size })));
+    return S.sb.bodies.map((b) => ({ id: b.id, name: b.name, kind: 'world', type: b.worldType, color: b.tintHex, radius: b.radius, dist: b.dist, speed: b.speedUser, spec: b.spec }))
+      .concat(S.sb.galaxies.map((g) => ({ id: g.id, name: g.name, kind: 'galaxy', type: g.arms + ' arms', color: g.tintHex, size: g.size, spec: g.spec })));
   }
   function emitSandbox() { if (S.cb.onSandboxChange) S.cb.onSandboxChange(sandboxItems()); }
 
-  function sandboxAddPlanet(o) {
-    const sc = S.sb;
+  /* One normalised description of a world. The live preview and the world that finally forms
+     are both built from it, so what you see while shaping is what you get. */
+  function planetSpec(o) {
+    const opt = (v, lo, hi) => (v === undefined || v === null || v === '' || !isFinite(+v) ? undefined : clamp(+v, lo, hi));
     const type = WORLD_TYPES[o.type] ? o.type : 'oceanic';
     const radius = clamp(+o.radius || 0.8, 0.3, 2.5);
     const minDist = SB_STAR.radius + radius + 1.0;
     let dist = clamp(+o.dist || 10, 4, 22);
     let adjusted = false;
     if (dist < minDist) { dist = minDist; adjusted = true; }
-    const speed = clamp(+o.speed || 1, 0.2, 3);
-    const id = 'w' + (sbId++);
-    const seed = o.seed || Math.floor(Math.random() * 1000);
-    const W = buildWorldUniforms(type, o.color || '#00f0ff', seed);
+    const spin = opt(o.spin, -2, 2), tiltDeg = opt(o.tiltDeg, 0, 180);
+    return {
+      type, radius, dist, adjusted,
+      name: (o.name || 'Planet-X').slice(0, 28),
+      speed: clamp(+o.speed || 1, 0.2, 3),
+      color: /^#[0-9a-f]{6}$/i.test(o.color || '') ? o.color : '#00f0ff',
+      seed: o.seed || Math.floor(Math.random() * 1000),
+      ang: o.ang !== undefined ? o.ang : Math.random() * TAU,
+      spin: spin !== undefined ? spin : 0.25 + Math.random() * 0.3,
+      tilt: tiltDeg !== undefined ? tiltDeg * Math.PI / 180 : (Math.random() - 0.5) * 0.7,
+      detail: opt(o.detail, 0, 1),
+      bright: opt(o.bright, 0.5, 1.5),
+      glow: opt(o.glow, 0, 1),
+      atmo: opt(o.atmo, 0, 2),
+      atmoColor: /^#[0-9a-f]{6}$/i.test(o.atmoColor || '') ? o.atmoColor : undefined
+    };
+  }
+  function publicSpec(sp) {
+    return {
+      name: sp.name, type: sp.type, radius: sp.radius, dist: sp.dist, speed: sp.speed, color: sp.color,
+      spin: sp.spin, tiltDeg: Math.round(sp.tilt * 180 / Math.PI), detail: sp.detail, bright: sp.bright,
+      glow: sp.glow, atmo: sp.atmo, atmoColor: sp.atmoColor, seed: sp.seed
+    };
+  }
+  function bodyFromSpec(sp, id) {
+    const W = worldLook(sp.type, sp.color, sp.seed, sp);
     const b = makeBody({
-      key: id, name: (o.name || 'Planet-X').slice(0, 28), kind: W.kind, radius, dist,
-      angVel: speed * 0.35, ang: o.ang !== undefined ? o.ang : Math.random() * TAU, spin: 0.25 + Math.random() * 0.3, tilt: (Math.random() - 0.5) * 0.7,
-      u: W.u, atmo: W.atmo
+      key: id, name: sp.name, kind: W.kind, radius: sp.radius, dist: sp.dist,
+      angVel: sp.speed * 0.35, ang: sp.ang, spin: sp.spin, tilt: sp.tilt,
+      u: W.u, atmo: W.atmo, corona: W.corona
     });
-    b.id = id; b.worldType = type; b.tintHex = o.color || '#00f0ff'; b.speedUser = speed; b.focusDist = radius * 5.2 + 1.4;
+    b.id = id; b.worldType = sp.type; b.tintHex = sp.color; b.speedUser = sp.speed; b.focusDist = sp.radius * 5.2 + 1.4;
+    b.spec = publicSpec(sp);
+    return b;
+  }
+
+  function sandboxAddPlanet(o) {
+    const sc = S.sb;
+    const sp = planetSpec(o);
+    if (o.fromDraft && sc.draft) sp.ang = sc.draft.ang;   // the world forms exactly where its preview was orbiting
+    const id = 'w' + (sbId++);
+    const b = bodyFromSpec(sp, id);
     b.label = addLabel(sc, b.name, () => sandboxFocus(id));
     sc.bodies.push(b);
+    if (o.fromDraft) sandboxClearPreview();
     emitSandbox();
-    return { id, name: b.name, dist, adjusted, type };
+    return { id, name: b.name, dist: sp.dist, adjusted: sp.adjusted, type: sp.type };
+  }
+
+  /* ---- live preview: one extra world that follows the Lab controls in real time ---- */
+  const previewLabel = (sp) => sp.name + ' · preview';
+
+  function sandboxPreview(o) {
+    const sc = S.sb;
+    const sp = planetSpec(o);
+    let d = sc.draft, created = false;
+    if (!d) {
+      d = sc.draft = bodyFromSpec(sp, 'draft');
+      d.isDraft = true;
+      d.label = addLabel(sc, previewLabel(sp), () => sandboxFocusPreview());
+      created = true;
+    } else {
+      patchDraft(d, sp);
+    }
+    return { created, dist: sp.dist, adjusted: sp.adjusted, seed: sp.seed };
+  }
+
+  function patchDraft(d, sp) {
+    const sc = S.sb;
+    const W = worldLook(sp.type, sp.color, sp.seed, sp);
+    if (d.u && d.u.uCloudRot !== undefined && W.u.uCloudRot !== undefined) W.u.uCloudRot = d.u.uCloudRot;   // keep the cloud drift going
+    d.kind = W.kind; d.u = W.u; d.atmo = W.atmo; d.corona = W.corona;
+    d.name = sp.name; d.worldType = sp.type; d.tintHex = sp.color; d.speedUser = sp.speed;
+    d.spin = sp.spin; d.tilt = sp.tilt; d.angVel = sp.speed * 0.35; d.spec = publicSpec(sp);
+    if (d.radius !== sp.radius) {
+      d.radius = sp.radius; d.focusDist = sp.radius * 5.2 + 1.4;
+      if (sc.selected === d) { sc.rig.minR = d.radius * 2.6; sc.rig.fly({ radius: d.focusDist }, 0.6); }
+    }
+    if (d.dist !== sp.dist) {
+      d.dist = sp.dist;
+      if (d.orbitMesh) d.orbitMesh.dispose();
+      d.orbitMesh = makeOrbitMesh(S.gl, sp.dist, 360);
+      d.pos = bodyPos(d);
+    }
+    if (d.label) d.label.el.textContent = previewLabel(sp);
+  }
+
+  function sandboxFocusPreview() {
+    const sc = S.sb, b = sc.draft;
+    if (!b) return;
+    sc.selected = b;
+    sc.labels.forEach((l) => l.active = false);
+    if (b.label) b.label.active = true;
+    sc.rig.minR = b.radius * 2.6; sc.rig.maxR = 120;
+    sc.rig.follow = () => b.pos;
+    // approach from the star's side, so the lit face is the one on screen
+    sc.rig.fly({ radius: b.focusDist, phi: 1.2, theta: Math.atan2(-b.pos[2], -b.pos[0]) + 0.8 }, 2.4);
+  }
+
+  function sandboxClearPreview() {
+    const sc = S.sb, d = sc.draft;
+    if (!d) return;
+    if (sc.selected === d) { sc.selected = null; sc.rig.follow = null; sc.rig.minR = 5; sc.rig.maxR = 170; }
+    sc.labels = sc.labels.filter((l) => l !== d.label);
+    disposeBody(d);
+    sc.draft = null;
   }
 
   function makeGalaxyMesh(gl, arms, size, tintRgb, seed, count) {
@@ -489,6 +709,7 @@
     const tiltDeg = clamp(+o.tilt || 55, 0, 85);
     const tintHex = o.color || '#8f7bff';
     const id = 'g' + (sbId++);
+    const seed = Math.floor(+o.seed || Math.random() * 99999) || 1;
     const rig = sc.rig;
     // placed beyond the system, roughly in the direction the camera is looking
     const look = V3.norm([-Math.cos(rig.theta) * Math.sin(rig.phi), 0, -Math.sin(rig.theta) * Math.sin(rig.phi)]);
@@ -512,7 +733,8 @@
     const tint = hexToRgb(tintHex);
     const g = {
       id, name: (o.name || 'Galaxy').slice(0, 28), arms, size, tiltDeg, tintHex, pos, model, normal, toCam,
-      mesh: makeGalaxyMesh(S.gl, arms, size, tint, Math.floor(Math.random() * 99999), S.cfg.galaxy),
+      mesh: makeGalaxyMesh(S.gl, arms, size, tint, seed, S.cfg.galaxy),
+      seed, spec: { name: (o.name || 'Galaxy').slice(0, 28), arms, size, tilt: tiltDeg, color: tintHex, seed },
       glowColor: [lerp(tint[0], 1, 0.35), lerp(tint[1], 0.85, 0.3), lerp(tint[2], 0.7, 0.2)], spin: 0
     };
     g.label = addLabel(sc, g.name, () => sandboxFocus(id));
@@ -561,6 +783,7 @@
     const sc = S.sb;
     sc.bodies.forEach(disposeBody); sc.galaxies.forEach(disposeBody);
     sc.bodies = []; sc.galaxies = []; sc.labels = []; sc.selected = null;
+    if (sc.draft && sc.draft.label) sc.labels.push(sc.draft.label);   // the preview survives a reset
     sc.rig.follow = null;
     emitSandbox();
     sandboxOverview();
@@ -637,7 +860,7 @@
     drawStars(sc);
 
     const isEx = sc === S.ex;
-    const allBodies = isEx ? sc.bodies : [sc.starBody].concat(sc.bodies);
+    const allBodies = isEx ? sc.bodies : [sc.starBody].concat(sc.bodies, sc.draft ? [sc.draft] : []);
 
     /* orbit lines */
     if (sc.orbitsOn) {
@@ -746,6 +969,7 @@
     const tanH = Math.tan(FOV / 2);
     const items = sc.bodies.map((b) => ({ lab: b.label, pos: b.pos, r: b.radius, obj: b }));
     if (sc === S.sb) sc.galaxies.forEach((g) => items.push({ lab: g.label, pos: g.pos, r: g.size * 0.12, obj: g }));
+    if (sc === S.sb && sc.draft) items.push({ lab: sc.draft.label, pos: sc.draft.pos, r: sc.draft.radius, obj: sc.draft });
     items.forEach((it) => {
       const lab = it.lab;
       if (!lab) return;
@@ -768,7 +992,7 @@
   function pickAt(sc, x, y, touch) {
     const tanH = Math.tan(FOV / 2);
     let best = null, bestD = 1e9;
-    const cands = sc === S.ex ? sc.bodies : sc.bodies.concat(sc.galaxies);
+    const cands = sc === S.ex ? sc.bodies : sc.bodies.concat(sc.galaxies, sc.draft ? [sc.draft] : []);
     cands.forEach((b) => {
       const p = M4.project(sc.vp, b.pos, S.w, S.h);
       if (p[2] <= 0) return;
@@ -837,6 +1061,7 @@
 
   function handlePick(sc, hit) {
     if (sc === S.ex) { if (S.cb.onSelect) S.cb.onSelect(hit.key); }
+    else if (hit.isDraft) sandboxFocusPreview();
     else sandboxFocus(hit.id);
   }
 
@@ -907,6 +1132,7 @@
       sc.starBody.spinA += sc.starBody.spin * dt;
       sc.starBody.model = M4.model([0, 0, 0], SB_STAR.radius, sc.starBody.spinA, sc.starBody.tilt);
       sc.bodies.forEach((b) => updateBody(b, dt * speed, sc));
+      if (sc.draft) updateBody(sc.draft, dt * speed, sc);
     }
     renderScene(sc, dt * (speed || 0));
     updateLabels(sc);
@@ -1033,6 +1259,10 @@
       list: sandboxItems,
       focus: sandboxFocus,
       overview: sandboxOverview,
+      preview: sandboxPreview,
+      clearPreview: sandboxClearPreview,
+      focusPreview: sandboxFocusPreview,
+      typeDefaults,
       setPaused(v) { S.sb.paused = !!v; },
       setOrbits(v) { S.sb.orbitsOn = !!v; }
     }

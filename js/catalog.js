@@ -274,7 +274,7 @@
     {
       id: 'create-help',
       keys: ['create', 'creator', 'lab', 'synthesize', 'synthesise', 'make a planet', 'build a planet', 'build a world', 'new world'],
-      answer: 'Open Create to build your own system. In the World tab choose a type, size, orbit and tint, then press Form world. In the Galaxy tab pick a number of arms, a size, a tilt and a tint to place a spiral galaxy in the distance. Created worlds are not saved when you close the page.'
+      answer: 'Open Create to build your own system. In the World tab choose a type, size, orbit and tint, then shape its rotation, axial tilt, surface detail, brightness, glow and atmosphere: a live preview world follows every change. Press Form world to set it in orbit, or Save to discoveries log to keep the design. In the Galaxy tab pick a number of arms, a size, a tilt and a tint to place a spiral galaxy in the distance. Worlds in orbit are cleared when you close the page, but designs saved to your discoveries log stay, and you can open them again in the lab.'
     },
     {
       id: 'hello',
