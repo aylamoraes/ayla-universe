@@ -115,21 +115,12 @@
   /* ------------------------------------------------------------------ *
    *  Opening sequence
    * ------------------------------------------------------------------ */
-  const intro = { video: null, node: null, failed: false, playing: false };
+  const intro = { video: null, node: null };
 
   function setIntroProgress(p, msg) {
     const bar = document.querySelector('#introProgress span');
     if (bar) bar.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
     if (msg) { const s = $('introStatus'); if (s) s.textContent = msg + '…'; }
-  }
-
-  function introStatic(reason) {
-    if (intro.failed) return;
-    intro.failed = true;
-    if (intro.node) { intro.node.classList.add('is-static'); intro.node.classList.remove('is-playing'); }
-    try { intro.video.pause(); } catch (_) { /* ignore */ }
-    intro.video.removeAttribute('autoplay');
-    if (global.console) console.info('[AYLA] intro video not playing (' + reason + '), showing the still frame');
   }
 
   function initIntro() {
@@ -138,15 +129,18 @@
     const v = intro.video;
     if (!v) return;
 
-    const conn = navigator.connection || {};
-    if (mqReduce.matches || conn.saveData) { introStatic(mqReduce.matches ? 'reduced motion' : 'data saver'); return; }
-
     v.muted = true; v.defaultMuted = true; v.playsInline = true;
 
-    v.addEventListener('playing', () => { intro.playing = true; intro.node.classList.add('is-playing'); });
-    v.addEventListener('error', () => introStatic('video error'));
-    const sources = v.querySelectorAll('source');
-    if (sources.length) sources[sources.length - 1].addEventListener('error', () => introStatic('no playable source'));
+    // The video is the only opening background: nothing in here swaps it for a still image.
+    // If it cannot load, the page keeps the dark gradient behind the title and the console says why.
+    v.addEventListener('error', () => {
+      if (global.console) console.warn('[AYLA] intro video could not be loaded:', v.currentSrc || v.getAttribute('src'), v.error ? v.error.message : '');
+    });
+
+    // Visitors who asked for less motion (or turned on Save-Data) get the video parked on its first frame.
+    // Delete these two lines if the video must always play.
+    const conn = navigator.connection || {};
+    if (mqReduce.matches || conn.saveData) { v.removeAttribute('autoplay'); try { v.pause(); } catch (_) { /* ignore */ } return; }
 
     // brief dip to dark at the seam, so the loop never shows a hard cut
     v.addEventListener('timeupdate', () => {
@@ -159,15 +153,12 @@
     const tryPlay = () => {
       const p = v.play();
       if (p && p.catch) p.catch(() => {
-        // autoplay blocked (low-power mode, strict policy): keep the still and retry on the first gesture
-        const retry = () => { v.play().catch(() => introStatic('autoplay blocked')); };
+        // autoplay blocked (low-power mode, strict policy): try again on the first gesture
+        const retry = () => { v.play().catch(() => { /* still blocked: the video waits on its first frame */ }); };
         ['pointerdown', 'touchstart', 'keydown'].forEach((t) => global.addEventListener(t, retry, { once: true, passive: true }));
       });
     };
     tryPlay();
-
-    // if nothing is playing after a while, settle on the still frame
-    global.setTimeout(() => { if (!intro.playing && !intro.failed && v.readyState < 3) introStatic('slow network'); }, 7000);
   }
 
   async function bootEngine() {
@@ -1298,7 +1289,7 @@ let chatHistory = [];
     $('enterUniverseBtn').setAttribute('aria-busy', 'true');
     initIntro();
 
-    // let the video and poster take the first bandwidth, then build the universe
+    // let the video take the first bandwidth, then build the universe
     const start = () => global.setTimeout(bootEngine, 350);
     if (document.readyState === 'complete') start(); else global.addEventListener('load', start, { once: true });
   }

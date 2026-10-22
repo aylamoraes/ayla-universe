@@ -114,15 +114,14 @@ body[data-mode="discoveries"] .universe { filter: brightness(0.5) saturate(0.85)
   background-size: cover;
   transform-origin: 50% 58%;
 }
-.intro__media.has-poster { background-image: url('../assets/img/ayla-intro-poster.jpg'); background-position: center; background-size: cover; }
+/* The video fills the whole screen at its native resolution: `cover` crops the overflow
+   instead of stretching it. It is visible by default (no JS class needed to reveal it),
+   and no static image sits behind it — the dark gradient above is only the colour you
+   see for a split second while the first frame loads. */
 .intro__video {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%;
   object-fit: cover; object-position: 50% 55%;
-  opacity: 0; transition: opacity 1.4s var(--ease-io);
 }
-.intro.is-playing .intro__video { opacity: 1; }
-.intro.is-static .intro__media.has-poster { animation: poster-drift 26s ease-in-out infinite alternate; }
-@keyframes poster-drift { from { transform: scale(1); } to { transform: scale(1.06); } }
 
 .intro__scrim {
   position: absolute; inset: 0; pointer-events: none;

@@ -9,9 +9,6 @@
   <meta name="description" content="AYLA UNIVERSE is an interactive journey through space: explore the solar system in 3D, ask AYLA about the cosmos, and build worlds and galaxies of your own.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2302030a'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%23eceeff' stroke-width='1.4'/%3E%3Ccircle cx='16' cy='16' r='2.6' fill='%238fe6f5'/%3E%3Ccircle cx='23.4' cy='10.1' r='1.7' fill='%23eceeff'/%3E%3C/svg%3E">
 
-  <!-- Poster is the first thing painted; start fetching it right away -->
-  <link rel="preload" as="image" href="assets/img/ayla-intro-poster.jpg" fetchpriority="high">
-
   <!-- Google Fonts: Jost (display/UI), Cormorant Garamond (editorial), IBM Plex Mono (data) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,14 +61,11 @@
 
   <!-- ===================== OPENING SCREEN ===================== -->
   <section id="gatewayHero" class="intro" aria-labelledby="introTitle">
-    <div class="intro__media has-poster" aria-hidden="true">
+    <div class="intro__media" aria-hidden="true">
+      <!-- Opening background: this single MP4 is the only media source -->
       <video id="introVideo" class="intro__video"
-             autoplay muted loop playsinline preload="auto"
-             poster="assets/img/ayla-intro-poster.jpg"
-             disablepictureinpicture disableremoteplayback tabindex="-1">
-        <source src="assets/video/ayla-intro.mp4" type="video/mp4">
-      
-      </video>
+             src="assets/video/ayla-intro.mp4"
+             autoplay muted loop playsinline preload="auto"></video>
       <div class="intro__scrim"></div>
       <div class="intro__grain"></div>
       <div class="intro__dip"></div>
